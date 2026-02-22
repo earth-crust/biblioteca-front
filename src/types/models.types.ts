@@ -1,161 +1,83 @@
-// User model
+import { UserRole, PrestamoEstado } from './enums'
+
+// Usuario
 export interface User {
   id: number
   email: string
   nombre: string
   apellidos: string
-  rol: UserRole
   telefono?: string
-  direccion?: string
-  fechaRegistro: Date
-  fechaUltimoAcceso?: Date
+  roles: UserRole[]
   activo: boolean
-  avatarUrl?: string
+  fechaRegistro: string
 }
 
-export enum UserRole {
-  USER = 'USER',
-  ADMIN = 'ADMIN',
-  BIBLIOTECARIO = 'BIBLIOTECARIO'
-}
-
-// Book model
-export interface Libro {
-  id: number
-  titulo: string
-  autor: string
-  isbn: string
-  descripcion?: string
-  editorial: string
-  anioPublicacion: number
-  categoria: Categoria
-  subcategoria?: Subcategoria
-  numeroPaginas?: number
-  idioma: string
-  copiasDisponibles: number
-  copiasTotales: number
-  imagenPortada?: string
-  estado: EstadoLibro
-  fechaCreacion: Date
-  fechaActualizacion: Date
-}
-
+// Categoría
 export interface Categoria {
   id: number
   nombre: string
   descripcion?: string
-  icono?: string
-  color?: string
+  libroCount?: number
 }
 
-export interface Subcategoria {
+// Autor
+export interface Autor {
   id: number
   nombre: string
-  categoriaId: number
-  descripcion?: string
+  apellidos: string
+  biografia?: string
+  fechaNacimiento?: string
+  nombreCompleto?: string // computed
 }
 
-export enum EstadoLibro {
-  DISPONIBLE = 'DISPONIBLE',
-  PRESTADO = 'PRESTADO',
-  RESERVADO = 'RESERVADO',
-  MANTENIMIENTO = 'MANTENIMIENTO',
-  PERDIDO = 'PERDIDO'
+// Libro
+export interface Libro {
+  id: number
+  isbn?: string
+  titulo: string
+  descripcion: string
+  numeroCopias: number
+  copiasDisponibles: number
+  añoPublicacion: number
+  imagen?: string
+  editorial: string
+  fechaCreacion: string
+  categoria: Categoria
+  autor: Autor
+  disponible?: boolean // computed
 }
 
-// Loan model
+// Préstamo
 export interface Prestamo {
   id: number
-  libro: Libro
   usuario: User
-  fechaPrestamo: Date
-  fechaDevolucionPrevista: Date
-  fechaDevolucionReal?: Date
-  estado: EstadoPrestamo
+  libro: Libro
+  fechaPrestamo: string
+  fechaDevolucionEsperada: string
+  fechaDevolucionReal?: string
+  estadoPrestamo: PrestamoEstado
   renovaciones: number
-  notas?: string
+  sancion: boolean
+  diasRetraso?: number
+  diasRestantes?: number // computed
+  puedeRenovar?: boolean // computed
 }
 
-export enum EstadoPrestamo {
-  ACTIVO = 'ACTIVO',
-  DEVUELTO = 'DEVUELTO',
-  VENCIDO = 'VENCIDO',
-  CANCELADO = 'CANCELADO'
-}
-
-// Message model
+// Mensaje
 export interface Mensaje {
   id: number
-  contenido: string
   remitente: User
-  destinatario?: User
-  conversacionId: number
+  destinatario: User
+  contenido: string
   leido: boolean
-  fechaEnvio: Date
-  fechaLeido?: Date
+  fechaEnvio: string
+  prestamo?: Prestamo
 }
 
+// Conversación (agrupación de mensajes)
 export interface Conversacion {
-  id: number
-  usuario1: User
-  usuario2: User
-  ultimoMensaje?: Mensaje
+  usuario: User
+  ultimoMensaje: Mensaje
   noLeidos: number
-  fechaCreacion: Date
-  fechaActualizacion: Date
 }
 
-// Reservation model
-export interface Reserva {
-  id: number
-  libro: Libro
-  usuario: User
-  fechaReserva: Date
-  fechaExpiracion: Date
-  estado: EstadoReserva
-  prioridad: number
-}
-
-export enum EstadoReserva {
-  ACTIVA = 'ACTIVA',
-  COMPLETADA = 'COMPLETADA',
-  CANCELADA = 'CANCELADA',
-  EXPIRADA = 'EXPIRADA'
-}
-
-// Notification model
-export interface Notificacion {
-  id: number
-  usuario: User
-  tipo: TipoNotificacion
-  titulo: string
-  mensaje: string
-  leido: boolean
-  fechaCreacion: Date
-  fechaLeido?: Date
-  metadata?: Record<string, any>
-}
-
-export enum TipoNotificacion {
-  PRESTAMO = 'PRESTAMO',
-  DEVOLUCION = 'DEVOLUCION',
-  RESERVA = 'RESERVA',
-  SISTEMA = 'SISTEMA',
-  MENSAJE = 'MENSAJE'
-}
-
-// Report model
-export interface Reporte {
-  id: number
-  tipo: TipoReporte
-  datos: any
-  fechaGeneracion: Date
-  usuarioGenerador?: User
-}
-
-export enum TipoReporte {
-  PRESTAMOS = 'PRESTAMOS',
-  LIBROS = 'LIBROS',
-  USUARIOS = 'USUARIOS',
-  FINANCIERO = 'FINANCIERO'
-}

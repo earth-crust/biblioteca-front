@@ -2,29 +2,23 @@
 export interface ApiResponse<T = any> {
   data: T
   message?: string
-  meta?: PaginationMeta
-  success: boolean
-}
-
-export interface ApiError {
-  message: string
   status: number
-  errors?: Record<string, string[]>
-  timestamp: string
-}
-
-export interface PaginationMeta {
-  total: number
-  page: number
-  limit: number
-  totalPages: number
-  hasNext: boolean
-  hasPrev: boolean
 }
 
 export interface PaginatedResponse<T> {
   data: T[]
-  meta: PaginationMeta
+  meta: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+}
+
+export interface ApiError {
+  message: string
+  errors?: Record<string, string[]>
+  status?: number
 }
 
 // HTTP methods

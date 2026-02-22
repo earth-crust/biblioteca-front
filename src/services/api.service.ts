@@ -81,8 +81,7 @@ export class ApiService {
         const apiError: ApiError = {
           message: error.response?.data?.message || 'An unexpected error occurred',
           status: error.response?.status || 500,
-          errors: error.response?.data?.errors || {},
-          timestamp: new Date().toISOString()
+          errors: error.response?.data?.errors || {}
         }
 
         return Promise.reject(apiError)
