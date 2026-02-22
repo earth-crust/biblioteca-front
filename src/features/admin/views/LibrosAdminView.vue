@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const loading = ref(false)
 </script>
 

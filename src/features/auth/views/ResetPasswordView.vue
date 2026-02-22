@@ -5,10 +5,12 @@ import { ROUTES } from '@/utils/constants'
 
 const router = useRouter()
 const route = useRoute()
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const token = route.params.token as string
 
 const password = ref('')
 const confirmPassword = ref('')
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const loading = ref(false)
 
 const handleSubmit = async () => {

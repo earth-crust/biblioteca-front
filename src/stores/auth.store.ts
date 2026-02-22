@@ -27,10 +27,10 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await authService.login({ email, password })
       
-      // Store tokens
-      token.value = response.data.accessToken
-      refreshToken.value = response.data.refreshToken
-      user.value = response.data.user
+      // Store tokens (LoginResponse has token, refreshToken, user directly)
+      token.value = response.token
+      refreshToken.value = response.refreshToken || null
+      user.value = response.user
       
       // Save to localStorage
       localStorage.setItem(TOKEN_KEY, token.value)
@@ -53,16 +53,14 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await authService.register(userData)
       
-      // Store tokens
-      token.value = response.data.accessToken
-      refreshToken.value = response.data.refreshToken
-      user.value = response.data.user
+      // After registration, we get a User directly (no tokens)
+      // In a real app, registration might also return tokens
+      // For now, assume registration doesn't auto-login
+      user.value = response
       
-      // Save to localStorage
-      localStorage.setItem(TOKEN_KEY, token.value)
-      if (refreshToken.value) {
-        localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken.value)
-      }
+      // Clear tokens until user logs in
+      token.value = null
+      refreshToken.value = null
       
     } catch (err: any) {
       error.value = err.message || 'Error al registrar usuario'
@@ -82,8 +80,8 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await authService.refreshToken(currentRefreshToken)
       
       // Update tokens
-      token.value = response.data.accessToken
-      refreshToken.value = response.data.refreshToken
+      token.value = response.token
+      refreshToken.value = response.refreshToken || null
       
       // Save to localStorage
       if (token.value) {
@@ -101,6 +99,12 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function logout(): Promise<void> {
+    try {
+      await authService.logout()
+    } catch (error) {
+      // Ignore errors, still clear local state
+    }
+    
     // Clear state
     user.value = null
     token.value = null
@@ -123,8 +127,8 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
     
     try {
-      const response = await authService.getProfile()
-      user.value = response.data
+      const userProfile = await authService.getProfile()
+      user.value = userProfile
     } catch (err: any) {
       error.value = err.message || 'Error al cargar perfil'
       throw err
@@ -142,8 +146,8 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
     
     try {
-      const response = await authService.updateProfile(userData)
-      user.value = response.data
+      const updatedUser = await authService.updateProfile(userData)
+      user.value = updatedUser
     } catch (err: any) {
       error.value = err.message || 'Error al actualizar perfil'
       throw err

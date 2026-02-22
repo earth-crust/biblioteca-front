@@ -2,7 +2,10 @@
 import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth.store'
 
+// Estas variables serán usadas cuando se implemente la lógica del perfil
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const authStore = useAuthStore()
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const loading = ref(false)
 </script>
 

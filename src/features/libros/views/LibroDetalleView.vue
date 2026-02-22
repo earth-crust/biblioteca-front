@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 
 const route = useRoute()
 const libroId = route.params.id as string
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const loading = ref(false)
 </script>
 

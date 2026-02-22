@@ -1,22 +1,19 @@
-import axios, {
-  type AxiosInstance,
-  type AxiosRequestConfig,
-  type AxiosResponse,
-  type InternalAxiosRequestConfig
-} from 'axios'
+import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import type { ApiResponse, ApiError } from '@/types/api.types'
 import { useAuthStore } from '@/stores/auth.store'
+import { useToast } from '@/composables/useToast'
+import router from '@/router'
 
 export class ApiService {
-  private instance: AxiosInstance
+  private axiosInstance: AxiosInstance
+  private toast = useToast()
 
   constructor() {
-    this.instance = axios.create({
+    this.axiosInstance = axios.create({
       baseURL: import.meta.env.VITE_API_BASE_URL,
-      timeout: 30000,
+      timeout: 15000,
       headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Content-Type': 'application/json'
       }
     })
 
@@ -25,102 +22,100 @@ export class ApiService {
 
   private setupInterceptors(): void {
     // Request interceptor
-    this.instance.interceptors.request.use(
+    this.axiosInstance.interceptors.request.use(
       (config: InternalAxiosRequestConfig) => {
         const authStore = useAuthStore()
-        
         if (authStore.token) {
           config.headers.Authorization = `Bearer ${authStore.token}`
         }
-
         return config
       },
-      (error) => {
-        return Promise.reject(error)
-      }
+      (error) => Promise.reject(error)
     )
 
     // Response interceptor
-    this.instance.interceptors.response.use(
-      (response: AxiosResponse) => {
-        return response
-      },
-      async (error) => {
-        const originalRequest = error.config
-
-        // Handle 401 Unauthorized
-        if (error.response?.status === 401 && !originalRequest._retry) {
-          originalRequest._retry = true
-          const authStore = useAuthStore()
-          
-          try {
-            // Try to refresh token
-            await authStore.refreshAuthToken()
-            
-            // Retry original request with new token
-            if (authStore.token) {
-              originalRequest.headers.Authorization = `Bearer ${authStore.token}`
-            }
-            
-            return this.instance(originalRequest)
-          } catch (refreshError) {
-            // Refresh failed, logout user
-            await authStore.logout()
-            window.location.href = '/login'
-            return Promise.reject(refreshError)
-          }
-        }
-
-        // Handle other errors
-        if (error.response?.status === 403) {
-          // Forbidden - redirect to forbidden page
-          window.location.href = '/forbidden'
-        }
-
-        // Convert error to standardized format
-        const apiError: ApiError = {
-          message: error.response?.data?.message || 'An unexpected error occurred',
-          status: error.response?.status || 500,
-          errors: error.response?.data?.errors || {},
-          timestamp: new Date().toISOString()
-        }
-
-        return Promise.reject(apiError)
+    this.axiosInstance.interceptors.response.use(
+      (response) => response,
+      (error: AxiosError<ApiError>) => {
+        this.handleError(error)
+        return Promise.reject(error)
       }
     )
   }
 
-  // HTTP methods
-  async get<T = any>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
-    const response = await this.instance.get<ApiResponse<T>>(url, config)
-    return response.data
+  private handleError(error: AxiosError<ApiError>): void {
+    if (!error.response) {
+      this.toast.error('Error de conexión. Verifica tu internet.')
+      return
+    }
+
+    const { status, data } = error.response
+
+    switch (status) {
+      case 401:
+        const authStore = useAuthStore()
+        authStore.logout()
+        router.push('/login')
+        this.toast.error('Sesión expirada. Por favor inicia sesión.')
+        break
+      case 403:
+        this.toast.error('No tienes permisos para realizar esta acción.')
+        break
+      case 404:
+        this.toast.error('Recurso no encontrado.')
+        break
+      case 422:
+        // Errores de validación (se manejan en componentes)
+        break
+      case 500:
+        this.toast.error('Error del servidor. Intenta más tarde.')
+        break
+      default:
+        this.toast.error(data?.message || 'Ha ocurrido un error.')
+    }
   }
 
-  async post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
-    const response = await this.instance.post<ApiResponse<T>>(url, data, config)
-    return response.data
+  // Métodos genéricos con tipos
+  async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
+    const response = await this.axiosInstance.get<ApiResponse<T>>(url, config)
+    return response.data.data
   }
 
-  async put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
-    const response = await this.instance.put<ApiResponse<T>>(url, data, config)
-    return response.data
+  async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+    const response = await this.axiosInstance.post<ApiResponse<T>>(url, data, config)
+    return response.data.data
   }
 
-  async patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
-    const response = await this.instance.patch<ApiResponse<T>>(url, data, config)
-    return response.data
+  async put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+    const response = await this.axiosInstance.put<ApiResponse<T>>(url, data, config)
+    return response.data.data
   }
 
-  async delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
-    const response = await this.instance.delete<ApiResponse<T>>(url, config)
-    return response.data
+  async patch<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+    const response = await this.axiosInstance.patch<ApiResponse<T>>(url, data, config)
+    return response.data.data
+  }
+
+  async delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
+    const response = await this.axiosInstance.delete<ApiResponse<T>>(url, config)
+    return response.data.data
+  }
+
+  // Para descarga de archivos
+  async downloadFile(url: string, filename: string): Promise<void> {
+    const response = await this.axiosInstance.get(url, { responseType: 'blob' })
+    const blob = new Blob([response.data])
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = filename
+    link.click()
+    URL.revokeObjectURL(link.href)
   }
 
   // Raw axios instance for custom requests
-  get axiosInstance(): AxiosInstance {
-    return this.instance
+  get axios(): AxiosInstance {
+    return this.axiosInstance
   }
 }
 
-// Singleton instance
 export const apiService = new ApiService()
