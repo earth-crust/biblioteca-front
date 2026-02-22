@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
 import type { NavigationGuardNext, RouteLocationNormalized } from 'vue-router'
+import { UserRole } from '@/types/enums'
 
 // Import route configurations
 import { authRoutes } from './routes/auth'
@@ -37,7 +38,7 @@ function requireAdmin(
   
   if (!authStore.isAuthenticated) {
     next({ name: 'login', query: { redirect: to.fullPath } })
-  } else if (authStore.userRole !== 'ADMIN') {
+  } else if (authStore.userRole !== UserRole.ADMIN) {
     next({ name: 'forbidden' })
   } else {
     next()

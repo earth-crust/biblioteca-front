@@ -17,7 +17,7 @@ export const useAuthStore = defineStore('auth', () => {
   const userFullName = computed(() => 
     user.value ? `${user.value.nombre} ${user.value.apellidos}`.trim() : ''
   )
-  const userRole = computed(() => user.value?.rol || null)
+  const userRole = computed(() => user.value?.roles?.[0] || null)
 
   // Actions
   async function login(email: string, password: string): Promise<void> {
