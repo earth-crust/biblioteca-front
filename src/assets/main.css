@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom CSS variables for theming */
+:root {
+  --color-primary: #3b82f6;
+  --color-primary-dark: #1d4ed8;
+  --color-secondary: #64748b;
+  --color-success: #22c55e;
+  --color-danger: #ef4444;
+  --color-warning: #f59e0b;
+  --color-accent: #10b981;
+}
+
+/* Base styles */
+body {
+  @apply bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  min-height: 100vh;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100 dark:bg-gray-800;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-400 rounded-full dark:bg-gray-600;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-500 dark:bg-gray-500;
+}
+
+/* Focus styles */
+*:focus {
+  @apply outline-2 outline-primary-500 outline-offset-2;
+}
+
+/* Smooth transitions */
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
