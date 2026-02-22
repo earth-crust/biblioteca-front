@@ -37,7 +37,7 @@ function requireAdmin(
   
   if (!authStore.isAuthenticated) {
     next({ name: 'login', query: { redirect: to.fullPath } })
-  } else if (authStore.userRole !== 'ADMIN') {
+  } else if (authStore.userRole !== 'ROLE_ADMIN') {
     next({ name: 'forbidden' })
   } else {
     next()

@@ -1,18 +1,92 @@
-// API response types
-export interface ApiResponse<T = any> {
+import type { User } from './models.types'
+import type { PrestamoEstado } from './enums'
+
+// Respuestas de API
+export interface ApiResponse<T> {
   data: T
   message?: string
-  meta?: PaginationMeta
-  success: boolean
+  status: number
+}
+
+export interface PaginatedResponse<T> {
+  data: T[]
+  meta: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
 }
 
 export interface ApiError {
   message: string
-  status: number
   errors?: Record<string, string[]>
-  timestamp: string
+  status: number
+  timestamp?: string
 }
 
+// DTOs para requests
+export interface RegisterDTO {
+  email: string
+  password: string
+  nombre: string
+  apellidos: string
+  telefono?: string
+}
+
+export interface LoginDTO {
+  email: string
+  password: string
+}
+
+export interface LoginResponse {
+  token: string
+  refreshToken?: string
+  user: User
+}
+
+export interface CreateLibroDTO {
+  isbn?: string
+  titulo: string
+  descripcion: string
+  numeroCopias: number
+  añoPublicacion: number
+  imagen?: string
+  editorial: string
+  categoriaId: number
+  autorId: number
+}
+
+export interface UpdateLibroDTO extends Partial<CreateLibroDTO> {
+  id: number
+}
+
+export interface CreatePrestamoDTO {
+  libroId: number
+}
+
+export interface CreateMensajeDTO {
+  destinatarioId: number
+  contenido: string
+  prestamoId?: number
+}
+
+export interface LibroFilters {
+  page?: number
+  limit?: number
+  search?: string
+  categoriaId?: number
+  autorId?: number
+  disponible?: boolean
+}
+
+export interface PrestamoFilters {
+  page?: number
+  estado?: PrestamoEstado
+  usuarioId?: number
+}
+
+// Tipos existentes para compatibilidad
 export interface PaginationMeta {
   total: number
   page: number
@@ -20,11 +94,6 @@ export interface PaginationMeta {
   totalPages: number
   hasNext: boolean
   hasPrev: boolean
-}
-
-export interface PaginatedResponse<T> {
-  data: T[]
-  meta: PaginationMeta
 }
 
 // HTTP methods

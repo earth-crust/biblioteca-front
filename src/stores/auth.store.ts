@@ -17,7 +17,7 @@ export const useAuthStore = defineStore('auth', () => {
   const userFullName = computed(() => 
     user.value ? `${user.value.nombre} ${user.value.apellidos}`.trim() : ''
   )
-  const userRole = computed(() => user.value?.rol || null)
+  const userRole = computed(() => user.value?.roles?.[0] || null)
 
   // Actions
   async function login(email: string, password: string): Promise<void> {
@@ -34,7 +34,9 @@ export const useAuthStore = defineStore('auth', () => {
       
       // Save to localStorage
       localStorage.setItem(TOKEN_KEY, token.value)
-      localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken.value!)
+      if (refreshToken.value) {
+        localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken.value)
+      }
       
     } catch (err: any) {
       error.value = err.message || 'Error al iniciar sesión'
@@ -58,7 +60,9 @@ export const useAuthStore = defineStore('auth', () => {
       
       // Save to localStorage
       localStorage.setItem(TOKEN_KEY, token.value)
-      localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken.value!)
+      if (refreshToken.value) {
+        localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken.value)
+      }
       
     } catch (err: any) {
       error.value = err.message || 'Error al registrar usuario'
@@ -69,20 +73,25 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function refreshAuthToken(): Promise<void> {
-    if (!refreshToken.value) {
+    const currentRefreshToken = refreshToken.value
+    if (!currentRefreshToken) {
       throw new Error('No refresh token available')
     }
     
     try {
-      const response = await authService.refreshToken(refreshToken.value)
+      const response = await authService.refreshToken(currentRefreshToken)
       
       // Update tokens
       token.value = response.data.accessToken
       refreshToken.value = response.data.refreshToken
       
       // Save to localStorage
-      localStorage.setItem(TOKEN_KEY, token.value)
-      localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken.value!)
+      if (token.value) {
+        localStorage.setItem(TOKEN_KEY, token.value)
+      }
+      if (refreshToken.value) {
+        localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken.value)
+      }
       
     } catch (err: any) {
       // If refresh fails, logout
