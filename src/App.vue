@@ -1,13 +1,19 @@
 <script setup lang="ts">
-import { RouterView } from 'vue-router'
-import { useAuthStore } from '@/stores/auth.store'
 import { onMounted } from 'vue'
+import { useAuthStore } from '@/stores/auth.store'
+import { useUIStore } from '@/stores/ui.store'
 
 const authStore = useAuthStore()
+const uiStore = useUIStore()
 
 onMounted(() => {
-  // Initialize app on mount
-  console.log('Biblioteca App mounted')
+  authStore.initializeAuth()
+  uiStore.initializeTheme()
+  
+  // Si hay token, cargar perfil
+  if (authStore.token) {
+    authStore.fetchProfile()
+  }
 })
 </script>
 

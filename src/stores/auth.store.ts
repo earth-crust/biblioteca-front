@@ -1,169 +1,103 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { User } from '@/types/models.types'
+import type { LoginDTO, RegisterDTO, LoginResponse } from '@/types/api.types'
+import { UserRole } from '@/types/enums'
 import { authService } from '@/services/auth.service'
-import { TOKEN_KEY, REFRESH_TOKEN_KEY } from '@/utils/constants'
+
+const TOKEN_KEY = 'auth_token'
+const USER_KEY = 'auth_user'
 
 export const useAuthStore = defineStore('auth', () => {
   // State
   const user = ref<User | null>(null)
   const token = ref<string | null>(localStorage.getItem(TOKEN_KEY))
-  const refreshToken = ref<string | null>(localStorage.getItem(REFRESH_TOKEN_KEY))
   const loading = ref(false)
   const error = ref<string | null>(null)
 
   // Getters
   const isAuthenticated = computed(() => !!token.value && !!user.value)
-  const userFullName = computed(() => 
-    user.value ? `${user.value.nombre} ${user.value.apellidos}`.trim() : ''
+  
+  const isAdmin = computed(() => 
+    user.value?.roles.includes(UserRole.ADMIN) ?? false
   )
-  const userRole = computed(() => user.value?.roles?.[0] || null)
+  
+  const isBibliotecario = computed(() =>
+    user.value?.roles.includes(UserRole.BIBLIOTECARIO) ?? false
+  )
+  
+  const canAccessAdmin = computed(() => isAdmin.value || isBibliotecario.value)
+  
+  const userFullName = computed(() => 
+    user.value ? `${user.value.nombre} ${user.value.apellidos}` : ''
+  )
 
   // Actions
-  async function login(email: string, password: string): Promise<void> {
+  async function login(credentials: LoginDTO): Promise<void> {
     loading.value = true
     error.value = null
     
     try {
-      const response = await authService.login({ email, password })
-      
-      // Store tokens (LoginResponse has token, refreshToken, user directly)
-      token.value = response.token
-      refreshToken.value = response.refreshToken || null
-      user.value = response.user
-      
-      // Save to localStorage
-      localStorage.setItem(TOKEN_KEY, token.value)
-      if (refreshToken.value) {
-        localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken.value)
-      }
-      
-    } catch (err: any) {
-      error.value = err.message || 'Error al iniciar sesión'
+      const response: LoginResponse = await authService.login(credentials)
+      setAuth(response.token, response.user)
+    } catch (err) {
+      error.value = 'Credenciales inválidas'
       throw err
     } finally {
       loading.value = false
     }
   }
 
-  async function register(userData: any): Promise<void> {
+  async function register(data: RegisterDTO): Promise<void> {
     loading.value = true
     error.value = null
     
     try {
-      const response = await authService.register(userData)
-      
-      // After registration, we get a User directly (no tokens)
-      // In a real app, registration might also return tokens
-      // For now, assume registration doesn't auto-login
-      user.value = response
-      
-      // Clear tokens until user logs in
-      token.value = null
-      refreshToken.value = null
-      
-    } catch (err: any) {
-      error.value = err.message || 'Error al registrar usuario'
+      const newUser = await authService.register(data)
+      // Después del registro, hacer login automáticamente
+      await login({ email: data.email, password: data.password })
+    } catch (err) {
+      error.value = 'Error al registrar usuario'
       throw err
     } finally {
       loading.value = false
     }
-  }
-
-  async function refreshAuthToken(): Promise<void> {
-    const currentRefreshToken = refreshToken.value
-    if (!currentRefreshToken) {
-      throw new Error('No refresh token available')
-    }
-    
-    try {
-      const response = await authService.refreshToken(currentRefreshToken)
-      
-      // Update tokens
-      token.value = response.token
-      refreshToken.value = response.refreshToken || null
-      
-      // Save to localStorage
-      if (token.value) {
-        localStorage.setItem(TOKEN_KEY, token.value)
-      }
-      if (refreshToken.value) {
-        localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken.value)
-      }
-      
-    } catch (err: any) {
-      // If refresh fails, logout
-      logout()
-      throw err
-    }
-  }
-
-  async function logout(): Promise<void> {
-    try {
-      await authService.logout()
-    } catch (error) {
-      // Ignore errors, still clear local state
-    }
-    
-    // Clear state
-    user.value = null
-    token.value = null
-    refreshToken.value = null
-    
-    // Clear localStorage
-    localStorage.removeItem(TOKEN_KEY)
-    localStorage.removeItem(REFRESH_TOKEN_KEY)
-    
-    // Clear any other auth-related data
-    document.cookie = 'auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
   }
 
   async function fetchProfile(): Promise<void> {
-    if (!token.value) {
-      throw new Error('No authentication token')
-    }
+    if (!token.value) return
     
     loading.value = true
-    error.value = null
-    
     try {
-      const userProfile = await authService.getProfile()
-      user.value = userProfile
-    } catch (err: any) {
-      error.value = err.message || 'Error al cargar perfil'
+      const profile = await authService.getProfile()
+      user.value = profile
+      localStorage.setItem(USER_KEY, JSON.stringify(profile))
+    } catch (err) {
+      logout()
       throw err
     } finally {
       loading.value = false
     }
   }
 
-  async function updateProfile(userData: Partial<User>): Promise<void> {
-    if (!token.value) {
-      throw new Error('No authentication token')
-    }
-    
-    loading.value = true
-    error.value = null
-    
-    try {
-      const updatedUser = await authService.updateProfile(userData)
-      user.value = updatedUser
-    } catch (err: any) {
-      error.value = err.message || 'Error al actualizar perfil'
-      throw err
-    } finally {
-      loading.value = false
-    }
+  function setAuth(newToken: string, newUser: User): void {
+    token.value = newToken
+    user.value = newUser
+    localStorage.setItem(TOKEN_KEY, newToken)
+    localStorage.setItem(USER_KEY, JSON.stringify(newUser))
   }
 
-  // Initialize from localStorage
-  function initialize(): void {
-    if (token.value) {
-      // Try to fetch profile if token exists
-      fetchProfile().catch(() => {
-        // If fetching profile fails, clear invalid token
-        logout()
-      })
+  function logout(): void {
+    token.value = null
+    user.value = null
+    localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(USER_KEY)
+  }
+
+  function initializeAuth(): void {
+    const savedUser = localStorage.getItem(USER_KEY)
+    if (savedUser && token.value) {
+      user.value = JSON.parse(savedUser)
     }
   }
 
@@ -171,22 +105,19 @@ export const useAuthStore = defineStore('auth', () => {
     // State
     user,
     token,
-    refreshToken,
     loading,
     error,
-    
     // Getters
     isAuthenticated,
+    isAdmin,
+    isBibliotecario,
+    canAccessAdmin,
     userFullName,
-    userRole,
-    
     // Actions
     login,
     register,
-    refreshAuthToken,
-    logout,
     fetchProfile,
-    updateProfile,
-    initialize
+    logout,
+    initializeAuth
   }
 })

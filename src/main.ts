@@ -44,7 +44,7 @@ app.mount('#app')
 
 // Initialize auth state after app is mounted
 const authStore = useAuthStore()
-authStore.initialize()
+authStore.initializeAuth()
 
 // Development tools
 if (import.meta.env.DEV) {

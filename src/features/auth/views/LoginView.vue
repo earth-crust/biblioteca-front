@@ -14,7 +14,7 @@ const loading = ref(false)
 const handleLogin = async () => {
   try {
     loading.value = true
-    await authStore.login(email.value, password.value)
+    await authStore.login({ email: email.value, password: password.value })
     router.push(ROUTES.HOME)
   } catch (error) {
     console.error('Login failed:', error)
